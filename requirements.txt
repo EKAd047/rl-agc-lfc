@@ -1,0 +1,6 @@
+gymnasium
+numpy
+scipy
+stable-baselines3
+matplotlib
+pyyaml

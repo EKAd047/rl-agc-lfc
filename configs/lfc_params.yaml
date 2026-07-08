@@ -1,0 +1,16 @@
+# Single-area LFC system parameters
+system:
+  H_nominal: 5.0       # inertia constant (seconds)
+  D: 0.8                # damping coefficient
+  T_governor: 0.2        # governor time constant (seconds)
+  T_turbine: 0.5         # turbine time constant (seconds)
+  R: 0.05                # droop
+
+inertia_sweep:
+  - 1.0    # nominal (H_nominal * 1.0)
+  - 0.5    # reduced inertia
+  - 0.25   # low inertia
+
+disturbance:
+  load_step_min: -0.05   # smallest random load step (p.u.)
+  load_step_max: 0.05    # largest random load step (p.u.)
