@@ -39,10 +39,11 @@ class LFCEnv(gym.Env):
 
         # --- State: [delta_f, P_m, P_g] ---
         self.state = np.zeros(3, dtype=np.float32)
+        self.integral_error = 0.0  # accumulated frequency error, gives the agent integral-like memory
         self.P_L = 0.0  # load disturbance, fixed for the episode, set in reset()
 
-        # --- Observation space: unbounded-ish box around the 3 state variables ---
-        high = np.array([1.0, 1.0, 1.0], dtype=np.float32)
+        # --- Observation space: [delta_f, P_m, P_g, integral_error] ---
+        high = np.array([1.0, 1.0, 1.0, 10.0], dtype=np.float32)
         self.observation_space = spaces.Box(low=-high, high=high, dtype=np.float32)
 
         # --- Action space: single continuous control signal P_ref ---
@@ -57,12 +58,13 @@ class LFCEnv(gym.Env):
 
         # Reset state to equilibrium (no deviation)
         self.state = np.zeros(3, dtype=np.float32)
+        self.integral_error = 0.0
         self.current_step = 0
 
         # Sample a random step-load disturbance for this episode
         self.P_L = self.np_random.uniform(self.load_step_min, self.load_step_max)
 
-        observation = self.state.copy()
+        observation = np.append(self.state, self.integral_error).astype(np.float32)
         info = {"P_L": self.P_L}
         return observation, info
 
@@ -80,17 +82,18 @@ class LFCEnv(gym.Env):
         P_g += self.dt * d_P_g
 
         self.state = np.array([delta_f, P_m, P_g], dtype=np.float32)
+        self.integral_error += delta_f * self.dt
         self.current_step += 1
 
         # --- Reward: penalize frequency deviation and control effort ---
         control_effort_weight = 0.1
-        reward = -(delta_f ** 2 + control_effort_weight * P_ref ** 2)
+        reward = float(-(100.0 * delta_f ** 2 + control_effort_weight * P_ref ** 2))
 
         # --- Episode termination ---
         terminated = False  # no early-termination condition for now
         truncated = self.current_step >= self.max_steps
 
-        observation = self.state.copy()
+        observation = np.append(self.state, self.integral_error).astype(np.float32)
         info = {"P_L": self.P_L, "P_ref": P_ref}
 
         return observation, reward, terminated, truncated, info
